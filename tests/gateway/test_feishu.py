@@ -3567,6 +3567,35 @@ class TestGroupMentionAtAll(unittest.TestCase):
         allowed_sender = SimpleNamespace(open_id="ou_allowed", user_id=None)
         self.assertTrue(_admits_group(adapter, message, allowed_sender, ""))
 
+    @patch.dict(os.environ, {"FEISHU_GROUP_POLICY": "open", "FEISHU_IGNORE_AT_ALL": "true"}, clear=True)
+    def test_at_all_ignored_when_env_set(self):
+        """FEISHU_IGNORE_AT_ALL=true makes @_all NOT trigger the bot."""
+        from gateway.config import PlatformConfig
+        from plugins.platforms.feishu.adapter import FeishuAdapter
+
+        adapter = FeishuAdapter(PlatformConfig())
+        message = SimpleNamespace(
+            content='{"text":"@_all 请注意"}',
+            mentions=[],
+        )
+        sender_id = SimpleNamespace(open_id="ou_any", user_id=None)
+        # Should be rejected — @_all is no longer treated as a mention.
+        self.assertFalse(_admits_group(adapter, message, sender_id, ""))
+
+    @patch.dict(os.environ, {"FEISHU_GROUP_POLICY": "open", "FEISHU_IGNORE_AT_ALL": "false"}, clear=True)
+    def test_at_all_still_triggers_when_env_unset_or_false(self):
+        """Default (env unset or false): @_all still triggers the bot."""
+        from gateway.config import PlatformConfig
+        from plugins.platforms.feishu.adapter import FeishuAdapter
+
+        adapter = FeishuAdapter(PlatformConfig())
+        message = SimpleNamespace(
+            content='{"text":"@_all 请注意"}',
+            mentions=[],
+        )
+        sender_id = SimpleNamespace(open_id="ou_any", user_id=None)
+        self.assertTrue(_admits_group(adapter, message, sender_id, ""))
+
 
 @unittest.skipUnless(_HAS_LARK_OAPI, "lark-oapi not installed")
 class TestSenderNameResolution(unittest.TestCase):

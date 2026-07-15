@@ -4333,9 +4333,16 @@ class FeishuAdapter(BasePlatformAdapter):
     # --- Mention detection ----------------------------------------------------
 
     def _mentions_self(self, message: Any) -> bool:
-        # @_all is Feishu's @everyone placeholder.
+        # @_all is Feishu's @everyone placeholder.  By default Hermes treats
+        # @everyone as a mention of the bot (so the bot responds in groups
+        # where someone @everyone's).  Set FEISHU_IGNORE_AT_ALL=true to make
+        # @everyone NOT trigger the bot — it will only respond to explicit
+        # @bot mentions.
         raw_content = getattr(message, "content", "") or ""
         if "@_all" in raw_content:
+            ignore_at_all = os.getenv("FEISHU_IGNORE_AT_ALL", "false").strip().lower() in {"true", "1", "yes", "on"}
+            if ignore_at_all:
+                return False
             return True
         mentions = getattr(message, "mentions", None) or []
         if mentions and self._message_mentions_bot(mentions):
